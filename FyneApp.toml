@@ -1,0 +1,7 @@
+Website = "https://github.com/LosEagle/notifier"
+
+[Details]
+Icon = "Icon.png"
+Name = "Notifier"
+ID = "com.github.loseagle.notifier"
+Version = "0.0.1"
