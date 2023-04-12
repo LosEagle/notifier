@@ -110,6 +110,7 @@ func main() {
   notifications := getNotificationsFromDb(db)
   stopNotificationCh := make(chan struct{})
   notificationInterval := 10 * time.Second
+  notificationInterval := 30 * time.Minute
   isNotifierRunning := false
 
   isRunningLabel := widget.NewLabel(fmt.Sprintf("Notification send is %v", false))
