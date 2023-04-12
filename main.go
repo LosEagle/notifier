@@ -34,9 +34,9 @@ func sendNotificationInIntervals(
   }
 }
 
-func initNotificationDb() *sql.DB {
+func initDb() *sql.DB {
   appStorageURI := fyne.CurrentApp().Storage().RootURI()
-  appStoragePath := filepath.Join(appStorageURI.Path(), "notifications.db")
+  appStoragePath := filepath.Join(appStorageURI.Path(), "notifier.db")
   initialNotifications := []string{
     "Be in the present",
     "Live in the moment",
@@ -105,7 +105,7 @@ func main() {
   application := app.NewWithID("com.github.loseagle.notifier")
   window := application.NewWindow("Notifier")
 
-  db := initNotificationDb()
+  db := initDb()
 
   notifications := getNotificationsFromDb(db)
   stopNotificationCh := make(chan struct{})
