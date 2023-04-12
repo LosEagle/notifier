@@ -13,24 +13,23 @@ import (
 	"time"
 )
 
-func sendNotificationsInIntervals(
-	app fyne.App,
-	text []string,
+func sendNotificationInIntervals(
+	sendNotification func(*fyne.Notification),
+	notifications []string,
 	interval time.Duration,
-	ch chan struct{},
+	stop chan struct{},
 ) {
 	ticker := time.NewTicker(interval)
-	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ticker.C:
-			app.SendNotification(&fyne.Notification{Title: "Notifier", Content: text[rand.Intn(len(text))]})
-		case <-ch:
-			app.SendNotification(&fyne.Notification{Title: "Notifier", Content: "Notification send stopped"})
+			sendNotification(&fyne.Notification{Title: "Notifier", Content: notifications[rand.Intn(len(notifications))]})
+		case <-stop:
+			ticker.Stop()
+			sendNotification(&fyne.Notification{Title: "Notifier", Content: "Notification send stopped"})
 			return
 		}
-		time.Sleep(interval * time.Second)
 	}
 }
 
@@ -38,6 +37,8 @@ func getNotificationsFromJson(path string) []string {
 	var notifications []string
 
 	jsonData, err := os.ReadFile(path)
+	log.Println(jsonData)
+	log.Println(err)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -52,31 +53,39 @@ func getNotificationsFromJson(path string) []string {
 
 func main() {
 	notifications := getNotificationsFromJson("./config/notifications.json")
-	notificationChannel := make(chan struct{})
-	notificationInterval := 5 * time.Second
+	stopNotificationCh := make(chan struct{})
+	notificationInterval := 30 * time.Minute
 	isNotifierRunning := false
 
 	application := app.NewWithID("com.github.loseagle.notifier")
 	window := application.NewWindow("Notifier")
 
-	isRunningLabel := widget.NewLabel(fmt.Sprintf("Notification send is %v", isNotifierRunning))
+	isRunningLabel := widget.NewLabel(fmt.Sprintf("Notification send is %v", false))
 
-	container := container.NewVBox(
+	appContainer := container.NewVBox(
 		isRunningLabel,
-		widget.NewButton("Toggle notification send", func() {
-			if !isNotifierRunning {
-				go sendNotificationsInIntervals(application, notifications, notificationInterval, notificationChannel)
-			} else if isNotifierRunning {
-				notificationChannel <- struct{}{}
-			}
+		widget.NewButton(
+			"Toggle notification send", func() {
+				if !isNotifierRunning {
+					go sendNotificationInIntervals(
+						application.SendNotification,
+						notifications,
+						notificationInterval,
+						stopNotificationCh,
+					)
+				} else if isNotifierRunning {
+					stopNotificationCh <- struct{}{}
+				}
 
-			isNotifierRunning = !isNotifierRunning
+				isNotifierRunning = !isNotifierRunning
 
-			labelText := fmt.Sprintf("Notification send is %v", isNotifierRunning)
-			isRunningLabel.SetText(labelText)
-		}))
+				labelText := fmt.Sprintf("Notification send is %v", isNotifierRunning)
+				isRunningLabel.SetText(labelText)
+			},
+		),
+	)
 
-	window.SetContent(container)
+	window.SetContent(appContainer)
 
 	window.ShowAndRun()
 }
