@@ -28,7 +28,6 @@ func sendNotificationInIntervals(
       sendNotification(&fyne.Notification{Title: "Notifier", Content: notifications[rand.Intn(len(notifications))]})
     case <-stop:
       ticker.Stop()
-      sendNotification(&fyne.Notification{Title: "Notifier", Content: "Notification send stopped"})
       return
     }
   }
@@ -58,7 +57,27 @@ func initDb() *sql.DB {
   return db
 }
 
+func insertNotification(db *sql.DB, notification string) {
+  if notification == "" {
+  }
+
+  stmt, err := db.Prepare("INSERT INTO notifications(content) VALUES(?)")
+  if err != nil {
+    log.Fatal(err)
+  }
+  defer stmt.Close()
+
+  _, err = stmt.Exec(notification)
+  if err != nil {
+    log.Println(err)
+    return
+  }
+}
+
 func insertNotifications(db *sql.DB, notifications []string) {
+  if len(notifications) == 0 {
+  }
+
   stmt, err := db.Prepare("INSERT INTO notifications(content) VALUES(?)")
   if err != nil {
     log.Fatal(err)
@@ -101,6 +120,38 @@ func getNotificationsFromDb(db *sql.DB) []string {
   return notifications
 }
 
+func createViewNotificationList(notifications []string) *widget.List {
+  list := widget.NewList(
+    func() int {
+      return len(notifications)
+    },
+    func() fyne.CanvasObject {
+      return widget.NewLabel("")
+    },
+    func(index widget.ListItemID, item fyne.CanvasObject) {
+      item.(*widget.Label).SetText(notifications[index])
+    },
+  )
+
+  return list
+}
+
+func createAddNotificationVBox(db *sql.DB) *fyne.Container {
+  notificationAddEntry := widget.NewEntry()
+  notificationAddEntry.SetPlaceHolder("Add a notification")
+
+  notificationAddSubmitButton := widget.NewButton(
+    "Add", func() {
+      insertNotification(db, notificationAddEntry.Text)
+    },
+  )
+
+  return container.NewVBox(
+    notificationAddEntry,
+    notificationAddSubmitButton,
+  )
+}
+
 func main() {
   application := app.NewWithID("com.github.loseagle.notifier")
   window := application.NewWindow("Notifier")
@@ -109,7 +160,6 @@ func main() {
 
   notifications := getNotificationsFromDb(db)
   stopNotificationCh := make(chan struct{})
-  notificationInterval := 10 * time.Second
   notificationInterval := 30 * time.Minute
   isNotifierRunning := false
 
@@ -117,8 +167,14 @@ func main() {
 
   appContainer := container.NewVBox(
     isRunningLabel,
+    createViewNotificationList(notifications),
+    createAddNotificationVBox(db),
     widget.NewButton(
-      "Toggle notification send", func() {
+      "Toggle sending of notifications", func() {
+        labelText := ""
+        isRunningLabelText := "Notifications are being sent"
+        isNotRunningLabelText := "Notifications are not being sent"
+
         if !isNotifierRunning {
           go sendNotificationInIntervals(
             application.SendNotification,
@@ -126,13 +182,16 @@ func main() {
             notificationInterval,
             stopNotificationCh,
           )
+
+          labelText = fmt.Sprintf(isRunningLabelText)
         } else if isNotifierRunning {
           stopNotificationCh <- struct{}{}
+
+          labelText = fmt.Sprintf(isNotRunningLabelText)
         }
 
         isNotifierRunning = !isNotifierRunning
 
-        labelText := fmt.Sprintf("Notification send is %v", isNotifierRunning)
         isRunningLabel.SetText(labelText)
       },
     ),
