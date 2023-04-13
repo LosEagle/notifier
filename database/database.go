@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"fmt"
 	"fyne.io/fyne/v2"
 	"log"
 	"path/filepath"
@@ -26,7 +27,11 @@ func Init() *sql.DB {
 		log.Fatal(err)
 	}
 
-	InsertNotifications(db, initialNotifications)
+	notifications := GetNotifications(db)
+	fmt.Print(len(notifications))
+	if len(notifications) == 0 {
+		InsertNotifications(db, initialNotifications)
+	}
 
 	return db
 }
