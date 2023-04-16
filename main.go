@@ -1,10 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/widget"
 	_ "github.com/mattn/go-sqlite3"
 	"notifier/database"
 	"notifier/notification"
@@ -22,17 +20,28 @@ func main() {
 	notifications := database.GetNotifications(db)
 	notificationInterval := 30 * time.Second
 
-	isRunningLabel := widget.NewLabel(fmt.Sprintf("Notification send is %v", false))
+	isRunningLabel := ui.CreateIsRunningLabel()
 
-	appContainer := container.NewVBox(
-		isRunningLabel,
-		ui.CreateViewNotificationList(notifications),
+	list := ui.CreateViewNotificationList(notifications)
+
+	otherWidgets := container.NewVBox(
 		ui.CreateAddNotificationVBox(db),
 		ui.CreateSendNotificationToggle(
 			func() {
 				notifier.Toggle(application, notifications, notificationInterval, isRunningLabel)
 			},
 		),
+		container.NewCenter(
+			isRunningLabel,
+		),
+	)
+
+	appContainer := container.NewBorder(
+		nil,
+		otherWidgets,
+		nil,
+		nil,
+		list,
 	)
 
 	window.SetContent(appContainer)

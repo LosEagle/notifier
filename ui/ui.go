@@ -8,7 +8,7 @@ import (
 	"notifier/database"
 )
 
-func CreateViewNotificationList(notifications []string) *widget.List {
+func CreateViewNotificationList(notifications []string) *fyne.Container {
 	list := widget.NewList(
 		func() int {
 			return len(notifications)
@@ -21,7 +21,7 @@ func CreateViewNotificationList(notifications []string) *widget.List {
 		},
 	)
 
-	return list
+	return container.NewMax(list)
 }
 
 func CreateAddNotificationVBox(db *sql.DB) *fyne.Container {
@@ -42,4 +42,15 @@ func CreateAddNotificationVBox(db *sql.DB) *fyne.Container {
 
 func CreateSendNotificationToggle(onToggle func()) *widget.Button {
 	return widget.NewButton("Toggle sending of notifications", onToggle)
+}
+
+func CreateIsRunningLabel() *widget.Label {
+	return widget.NewLabel("Application is not running")
+}
+
+func CreateSetIntervalVBox() *fyne.Container {
+	return container.NewHBox(
+		widget.NewLabel("Set interval (minutes): "),
+		widget.NewEntry(),
+	)
 }
